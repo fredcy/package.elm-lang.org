@@ -1,27 +1,15 @@
-module Utils.ProximityTree
-    ( ProximityTree
-    , fromList
-    , toList
-    , map
-    , lookup
-    , nearest
-    )
-    where
-
-
-
--- DEFINITION
+module Utils.ProximityTree (ProximityTree, fromList, toList, map, lookup, nearest, temperLinearly, temperLog) where
 
 
 type ProximityTree a
-    = Node (Entry a) (ProximityTree a) (ProximityTree a)
-    | Empty
+  = Node (Entry a) (ProximityTree a) (ProximityTree a)
+  | Empty
 
 
 type alias Entry a =
-    { fraction : Float
-    , value : a
-    }
+  { fraction : Float
+  , value : a
+  }
 
 
 
@@ -52,12 +40,12 @@ fromList toNumber list =
           (toNumber value - mini) / (maxi - mini)
       in
         list
-          |> List.map (\x -> (toFraction x, x))
+          |> List.map (\x -> ( toFraction x, x ))
           |> List.sortBy fst
           |> fromListHelp
 
 
-fromListHelp : List (Float, a) -> ProximityTree a
+fromListHelp : List ( Float, a ) -> ProximityTree a
 fromListHelp list =
   let
     half =
@@ -70,7 +58,7 @@ fromListHelp list =
       [] ->
         Empty
 
-      (fraction, value) :: right ->
+      ( fraction, value ) :: right ->
         Node (Entry fraction value) (fromListHelp left) (fromListHelp right)
 
 
@@ -78,14 +66,14 @@ fromListHelp list =
 -- FLATTEN
 
 
-toList : ProximityTree a -> List (Float, a)
+toList : ProximityTree a -> List ( Float, a )
 toList tree =
   case tree of
     Empty ->
       []
 
-    Node {fraction,value} left right ->
-      toList left ++ [(fraction, value)] ++ toList right
+    Node { fraction, value } left right ->
+      toList left ++ [ ( fraction, value ) ] ++ toList right
 
 
 
@@ -98,7 +86,7 @@ map func tree =
     Empty ->
       Empty
 
-    Node {fraction,value} left right ->
+    Node { fraction, value } left right ->
       Node (Entry fraction (func value)) (map func left) (map func right)
 
 
@@ -107,21 +95,20 @@ lookup targetValue tree =
   lookupHelp targetValue (toList tree)
 
 
-lookupHelp : a -> List (Float, a) -> Float
+lookupHelp : a -> List ( Float, a ) -> Float
 lookupHelp targetValue entries =
   case entries of
     [] ->
       Debug.crash "Trying to lookup an entry that does not exist in this ProximityTree"
 
-    (fraction, value) :: rest ->
+    ( fraction, value ) :: rest ->
       if targetValue == value then
         fraction
-
       else
         lookupHelp targetValue rest
 
 
-nearest : Float -> ProximityTree a -> (Float, a)
+nearest : Float -> ProximityTree a -> ( Float, a )
 nearest fraction tree =
   case tree of
     Empty ->
@@ -131,17 +118,21 @@ nearest fraction tree =
       nearestHelp middle fraction tree
 
 
-nearestHelp : Entry a -> Float -> ProximityTree a -> (Float, a)
+nearestHelp : Entry a -> Float -> ProximityTree a -> ( Float, a )
 nearestHelp nearest fraction tree =
   case tree of
     Empty ->
-      (nearest.fraction, nearest.value)
+      ( nearest.fraction, nearest.value )
 
     Node middle left right ->
       nearestHelp
         (minBy (distanceTo fraction) middle nearest)
         fraction
-        (if fraction < middle.fraction then left else right)
+        (if fraction < middle.fraction then
+          left
+         else
+          right
+        )
 
 
 distanceTo : Float -> Entry a -> Float
@@ -151,5 +142,63 @@ distanceTo fraction entry =
 
 minBy : (a -> comparable) -> a -> a -> a
 minBy toComp a b =
-  if toComp a < toComp b then a else b
+  if toComp a < toComp b then
+    a
+  else
+    b
 
+
+temperAccum step ( fraction, version ) list =
+  case list of
+    [] ->
+      [ ( 0, version ) ]
+
+    ( f', v' ) :: rest ->
+      ( f' + step, version ) :: ( f', v' ) :: rest
+
+
+temperLinearly : ProximityTree a -> ProximityTree a
+temperLinearly tree =
+  let
+    list = toList tree |> Debug.log "list"
+
+    step = 1 / toFloat (List.length list)
+
+    tempered =
+      List.foldl (temperAccum step) [] list
+        |> List.reverse
+  in
+    fromListHelp tempered
+
+temperLog : ProximityTree a -> ProximityTree a
+temperLog tree =
+  let
+    list = toList tree
+    logDiffs = List.foldl temperLogAccum [] list
+             |> List.map (\(d, _, v) -> (d, v))
+             |> List.reverse
+  in
+    logDiffs |> normalize |> fromListHelp
+                 
+temperLogAccum : (Float, a) -> List (Float, Float, a) -> List (Float, Float, a)
+temperLogAccum (fraction, version) list =
+  case list of
+    [] ->
+      [ ( 0, 0, version ) ]
+
+    ( dist', f', v' ) :: rest ->
+      let
+        logDiff = logBase 2 (1 + (fraction - f') * 100000)
+        dist = dist' + logDiff
+      in
+        ( dist, fraction, version) :: ( dist', f', v') :: rest
+
+normalize : List (Float, a) -> List (Float, a)
+normalize list =
+  let
+    maxi =
+      List.foldl (max << fst) 0 list
+  in
+    List.map (\ (x, v) -> (x/maxi, v)) list
+        
+    

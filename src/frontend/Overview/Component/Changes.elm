@@ -52,8 +52,10 @@ type Docs
 init : Ctx.OverviewContext -> History.History -> ( Model, Fx.Effects Action )
 init context history =
   let
+    _ = Debug.log "history" history
     proxTree =
       Prox.map .version (Prox.fromList (toFloat << .date) history)
+        |> Prox.temperLinearly
 
     (penultimate, ultimate) =
       latestInterestingVersions history

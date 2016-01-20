@@ -167,17 +167,17 @@ makeDot before (fraction, current) maybeAfter =
   in
     case Vsn.magnitude before current of
       Vsn.Major ->
-        dot x isImportant major (Just (Vsn.getMajor current))
+        dot x 20 isImportant major (Just (Vsn.getMajor current))
 
       Vsn.Minor ->
-        dot x isImportant minor Nothing
+        dot x 50 isImportant minor Nothing
 
       Vsn.Patch ->
-        dot x isImportant patch Nothing
+        dot x 80 isImportant patch Nothing
 
 
-dot : Int -> Bool -> List (String, String) -> Maybe Int -> Html
-dot x isImportant magnitudeStyles maybeMajor =
+dot : Int -> Int -> Bool -> List (String, String) -> Maybe Int -> Html
+dot x y isImportant magnitudeStyles maybeMajor =
   let
     classes =
       [ "timeline-dot" => True
@@ -185,7 +185,7 @@ dot x isImportant magnitudeStyles maybeMajor =
       ]
 
     props =
-      ("left" => px x) :: magnitudeStyles
+      ("left" => px x) :: ("top" => pct y) :: magnitudeStyles
 
     children =
       case maybeMajor of
@@ -202,6 +202,9 @@ px : Int -> String
 px n =
   toString n ++ "px"
 
+pct : Int -> String
+pct n =
+  toString n ++ "%"
 
 major : List (String, String)
 major =

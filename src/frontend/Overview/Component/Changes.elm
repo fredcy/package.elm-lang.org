@@ -23,6 +23,7 @@ import Docs.Type as Type
 import Docs.Version as Vsn
 import Overview.Diff as Diff
 import Overview.History as History
+import Overview.LimitSlider as LimitSlider
 import Overview.Slider as Slider
 import Page.Context as Ctx
 import Parse.Type as Type
@@ -39,6 +40,7 @@ type alias Model =
     , versions : Prox.ProximityTree Vsn.Version
     , slider1 : Slider.Model
     , slider2 : Slider.Model
+    , limitSlider1 : LimitSlider.Model
     , docs : Dict.Dict Vsn.Version Docs
     }
 
@@ -57,12 +59,16 @@ init context history =
 
     (penultimate, ultimate) =
       latestInterestingVersions history
+
+    first =
+      history |> List.reverse |> List.head |> Maybe.map .version |> Maybe.withDefault (1,0,0)
   in
     ( Model
         history
         proxTree
         (Slider.init (Prox.lookup penultimate proxTree))
         (Slider.init (Prox.lookup ultimate proxTree))
+        (LimitSlider.init (Prox.lookup first proxTree))
         (Dict.fromList [ penultimate => Loading, ultimate => Loading ])
     , Fx.batch
         [ loadDocs context penultimate
@@ -95,13 +101,14 @@ latestInterestingVersions history =
 type Action
     = UpdateSlider1 Slider.Action
     | UpdateSlider2 Slider.Action
+    | UpdateLimitSlider1 LimitSlider.Action
     | DocsFailed Vsn.Version
     | DocsLoaded Vsn.Version (Docs.Package Type.Type)
 
 
 update : Ctx.OverviewContext -> Action -> Model -> ( Model, Fx.Effects Action )
 update context action model =
-  case action of
+  case action |> Debug.log "action" of
     UpdateSlider1 act ->
       let
         (newSlider, fx, maybeTarget) =
@@ -124,6 +131,15 @@ update context action model =
       in
         ( { model | slider2 = newSlider, docs = newDocs }
         , Fx.batch [ Fx.map UpdateSlider2 fx, maybeRequest ]
+        )
+
+    UpdateLimitSlider1 act ->
+      let
+        (newSlider, fx, maybeTarget) =
+          LimitSlider.update model.versions act model.limitSlider1
+      in
+        ( { model | limitSlider1 = newSlider }
+        , Fx.map UpdateLimitSlider1 fx
         )
 
     DocsFailed vsn ->
@@ -195,7 +211,7 @@ maybeLoadDocs context docs maybeTarget =
 
 
 view : Signal.Address Action -> Model -> Html
-view address {history, versions, slider1, slider2, docs} =
+view address {history, versions, slider1, slider2, limitSlider1, docs} =
   let
     (fraction1, version1) =
       sliderInfo versions slider1
@@ -209,12 +225,19 @@ view address {history, versions, slider1, slider2, docs} =
         frac
         (Vsn.vsnToString vsn)
         color
+
+    viewLimitSlider tag model label =
+      LimitSlider.view
+                   (Signal.forwardTo address tag)
+                     (LimitSlider.currentFraction model)
+                     label "red"
   in
     div []
       [ History.view versions
       , div [ class "slider-container" ]
           [ viewSlider UpdateSlider1 fraction1 version1 "#7FD13B"
           , viewSlider UpdateSlider2 fraction2 version2 "#60B5CC"
+          , viewLimitSlider UpdateLimitSlider1 limitSlider1 ">"
           ]
       , div [ class "diff" ]
           [ diffHeader fraction1 fraction2 version1 version2

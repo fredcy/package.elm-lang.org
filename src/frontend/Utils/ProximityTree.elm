@@ -148,13 +148,14 @@ minBy toComp a b =
     b
 
 
+temperAccum : Float -> (Float, a) -> List (Float, a) -> List (Float, a)
 temperAccum step ( fraction, version ) list =
   case list of
     [] ->
       [ ( 0, version ) ]
 
-    ( f', v' ) :: rest ->
-      ( f' + step, version ) :: ( f', v' ) :: rest
+    ( ( f', _ ) as first ) :: rest ->
+      ( f' + step, version ) :: first :: rest
 
 
 temperLinearly : ProximityTree a -> ProximityTree a
@@ -162,7 +163,7 @@ temperLinearly tree =
   let
     list = toList tree |> Debug.log "list"
 
-    step = 1 / toFloat (List.length list)
+    step = 1 / toFloat (List.length list - 1)
 
     tempered =
       List.foldl (temperAccum step) [] list

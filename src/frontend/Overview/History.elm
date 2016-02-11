@@ -167,13 +167,13 @@ makeDot before (fraction, current) maybeAfter =
   in
     case Vsn.magnitude before current of
       Vsn.Major ->
-        dot x 20 isImportant major (Just (Vsn.getMajor current))
+        dot x 25 isImportant major (Just (Vsn.getMajor current))
 
       Vsn.Minor ->
         dot x 50 isImportant minor Nothing
 
       Vsn.Patch ->
-        dot x 80 isImportant patch Nothing
+        dot x 75 isImportant patch Nothing
 
 
 dot : Int -> Int -> Bool -> List (String, String) -> Maybe Int -> Html

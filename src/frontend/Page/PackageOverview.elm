@@ -20,7 +20,6 @@ import Route
 
 port context : Ctx.OverviewContext
 
-
 port rawHistory : List History.RawRelease
 
 
@@ -28,6 +27,10 @@ history : History.History
 history =
   List.map History.processRaw rawHistory
 
+{- To simplify testing, reduce the size of the history that we view -}
+testLen = 9999
+context' = { context | versions = context.versions |> List.sort |> List.take testLen }
+history' = history |> List.sortBy .version |> List.take testLen
 
 app =
   StartApp.start
@@ -72,7 +75,7 @@ init =
       Links.init context
 
     (changes, changesFx) =
-      Changes.init context history
+      Changes.init context' history'
   in
     ( Model header links changes
     , Fx.batch
@@ -94,7 +97,7 @@ type Action
 
 update : Action -> Model -> (Model, Effects Action)
 update action model =
-  case action of
+  case action |> Debug.log "action" of
     UpdateLinks act ->
         let
           (newDocs, fx) =

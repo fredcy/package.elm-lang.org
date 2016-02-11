@@ -108,7 +108,7 @@ type Action
 
 update : Ctx.OverviewContext -> Action -> Model -> ( Model, Fx.Effects Action )
 update context action model =
-  case action |> Debug.log "action" of
+  case action of
     UpdateSlider1 act ->
       let
         (newSlider, fx, maybeTarget) =

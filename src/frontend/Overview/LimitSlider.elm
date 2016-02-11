@@ -74,12 +74,13 @@ type Action
 
 update : Prox.ProximityTree a -> Action -> Model -> ( Model, Fx.Effects Action, Maybe a )
 update proxTree action model =
-  case action of
+  case (action, model) |> Debug.log "LimitSlider" |> fst of
     DragStart address x ->
       let
         newModel =
           Model
-            (currentFraction model)
+            --(currentFraction model)
+            model.fraction
             (Just (Drag x x))
             None
       in

@@ -4,7 +4,6 @@ watch:
 	    echo; echo; \
 	    echo $$f; \
 	    elm make src/frontend/Page/PackageOverview.elm --yes --output=artifacts/Page-PackageOverview.js; \
-	    (cd test; elm make Test.elm --yes); \
 	done
 
 browse:
